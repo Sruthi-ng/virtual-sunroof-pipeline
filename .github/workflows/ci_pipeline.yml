@@ -1,0 +1,44 @@
+name: Sunroof Validation Pipeline
+
+# 1. THE TRIGGER
+# Run this pipeline whenever code is pushed to the 'main' branch
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows you to run it manually from the UI
+
+# 2. THE JOB
+jobs:
+  virtual-hil-test:
+    runs-on: ubuntu-latest  # We rent a Linux machine (Standard VM)
+
+    steps:
+      # Step A: Get the code from the repo
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step B: Install the environment (like setting up the bench)
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      # Step C: Install dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step D: Run the Validation Suite
+      # We use --junitxml to create a report file we can view later
+      - name: Run Sunroof Validation Scripts
+        run: |
+          python -m pytest -v --junitxml=test-results.xml
+      
+      # Step E: Upload Results (so we can download them from GitHub)
+      - name: Archive Test Results
+        if: always() # Run this even if tests fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-reports
+          path: test-results.xml
